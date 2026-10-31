@@ -1,6 +1,6 @@
 {
   "name": "dsh-listen-together",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "网易云「一起听」插件：扫码或 cookie 登录，粘贴邀请链接进房，房间里说的话记在这里，还能绑一个 DSH 会话，用那个会话的人格回话。",
   "license": "MIT",
   "type": "module",
