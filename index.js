@@ -220,7 +220,9 @@ export function apply(ctx, config = {}) {
           const room = await managerFor().join(link, { selfUserId, say: settings.sayOnJoin });
           return send(res, 200, { ok: true, room });
         } catch (error) {
-          throw new Error(friendlyJoinError(error));
+          const friendly = friendlyJoinError(error);
+          appendLog({ kind: 'error', text: '进房失败：' + String(friendly?.message || friendly) });
+          throw new Error(String(friendly?.message || friendly));
         }
       }
       if (req.method === 'POST' && action === 'leave') {
