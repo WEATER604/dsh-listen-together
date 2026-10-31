@@ -69,7 +69,8 @@ window.__ModuleLoader__.load({
       if (!raw.trim()) return null
       const urls = raw.match(/https?:\/\/[^\s<>"'，。；、）)\]]+/g) || []
       const candidate = urls[0] || raw
-      const room = /[?&#]room_?id=(\d{1,20})/i.exec(candidate)
+      if (/163cn\.(tv|link)|url\.cn/i.test(candidate)) return { kind: 'short', roomId: '' }
+      const room = /[?&#]room_?id=([A-Za-z0-9_-]{4,80})/i.exec(candidate)
       if (!room) return null
       const uid = /[?&#]inviter_?uid=(\d{1,20})/i.exec(candidate)
       if (uid) return { kind: 'multi', roomId: room[1] }
@@ -277,6 +278,7 @@ window.__ModuleLoader__.load({
           (() => {
             const peek = peekLink(link)
             if (!peek) return link.trim() ? React.createElement('div', { className: 'sub bad' }, '这段里没认出房间号，确认一下是不是一起听邀请（不是歌单链接）。') : null
+            if (peek.kind === 'short') return React.createElement('div', { className: 'sub' }, '这是一条短链（电脑版复制出来的就是这种），进去的时候我会先展开，看看是双人还是多人。')
             return React.createElement('div', { className: 'sub' },
               peek.kind === 'multi'
                 ? '这是一条多人一起听邀请（房间 ' + peek.roomId + '），进去以后能直接在房间聊天室里说话。'
