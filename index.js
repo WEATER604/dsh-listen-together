@@ -28,8 +28,7 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
-function readBody(req, limit = 128 * 1024) {
-  return new Promise((resolve, reject) => {
+function readBody(req, limit = 128 * 1024) {  return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', chunk => {
@@ -44,6 +43,24 @@ function readBody(req, limit = 128 * 1024) {
     });
     req.on('error', reject);
   });
+}
+
+// 把网易云那边的失败原因翻成人话：最常见的是一起听房间已经散了。
+function friendlyJoinError(error) {
+  const detail = String(error?.detail || error?.message || error);
+  if (/MULTI_ACK_ROOM_NOT_EXIST/.test(detail)) {
+    return '这个一起听房间已经失效了（对方退出了，或者房间过期）。让 TA 重新开一个，再把新链接发过来。';
+  }
+  if (/CHECK_TOKEN|MULTI_CHECK_TOKEN_MISSING/.test(detail)) {
+    return '一起听要的风控校验没拿到，等几秒重试；一直不行就换个网络再试。';
+  }
+  if (/LOGIN_REQUIRED|API_301/.test(detail)) {
+    return '网易云登录过期了，重新扫码登录一下。';
+  }
+  if (/接口未找到|API_404/.test(detail)) {
+    return '网易云不认这个链接，确认一下是不是聊天里那条一起听邀请（不是歌单链接）。';
+  }
+  return detail;
 }
 
 export function apply(ctx, config = {}) {
@@ -137,6 +154,7 @@ export function apply(ctx, config = {}) {
           config: loadConfig(),
           room: state.room,
           music: state.music,
+          joinedSongs: state.joinedSongs ?? 0,
           songs: state.songs ?? [],
           lastError: state.lastError,
           log: readLog(200),
@@ -198,8 +216,12 @@ export function apply(ctx, config = {}) {
         if (!selfUserId) await refreshSelf();
         const settings = loadConfig();
         managerFor().client = client();
-        const room = await managerFor().join(link, { selfUserId, say: settings.sayOnJoin });
-        return send(res, 200, { ok: true, room });
+        try {
+          const room = await managerFor().join(link, { selfUserId, say: settings.sayOnJoin });
+          return send(res, 200, { ok: true, room });
+        } catch (error) {
+          throw new Error(friendlyJoinError(error));
+        }
       }
       if (req.method === 'POST' && action === 'leave') {
         managerFor().client = client();
