@@ -1,0 +1,47 @@
+{
+  "name": "dsh-listen-together",
+  "version": "0.1.0",
+  "description": "网易云「一起听」插件：扫码或 cookie 登录，粘贴邀请链接进房，房间里说的话记在这里，还能绑一个 DSH 会话，用那个会话的人格回话。",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "netease",
+    "listen-together",
+    "一起听"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "lib/",
+    "vendor/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "slots"
+      ],
+      "external": [
+        "react"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
