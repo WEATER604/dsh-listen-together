@@ -63,6 +63,21 @@ window.__ModuleLoader__.load({
       return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes())
     }
 
+    // 在客户端先认一下链接类型，粘进来就能看见是双人还是多人。
+    function peekLink(text) {
+      const raw = String(text || '').replace(/\\_/g, '_').replace(/\\&/g, '&').replace(/&amp;/g, '&')
+      if (!raw.trim()) return null
+      const urls = raw.match(/https?:\/\/[^\s<>"'，。；、）)\]]+/g) || []
+      const candidate = urls[0] || raw
+      const room = /[?&#]room_?id=(\d{1,20})/i.exec(candidate)
+      if (!room) return null
+      const uid = /[?&#]inviter_?uid=(\d{1,20})/i.exec(candidate)
+      if (uid) return { kind: 'multi', roomId: room[1] }
+      const id = /[?&#]inviter_?id=(\d{1,20})/i.exec(candidate)
+      if (id) return { kind: 'double', roomId: room[1] }
+      return null
+    }
+
     function useStyle() {
       useEffect(() => {
         const id = 'dsh-listen-together-style'
@@ -259,6 +274,14 @@ window.__ModuleLoader__.load({
             React.createElement('button', { className: 'primary', disabled: !!busy, onClick: join }, busy === 'join' ? '进房中…' : '进去'),
             room.roomId ? React.createElement('button', { disabled: !!busy, onClick: leave }, '离开') : null,
           ),
+          (() => {
+            const peek = peekLink(link)
+            if (!peek) return link.trim() ? React.createElement('div', { className: 'sub bad' }, '这段里没认出房间号，确认一下是不是一起听邀请（不是歌单链接）。') : null
+            return React.createElement('div', { className: 'sub' },
+              peek.kind === 'multi'
+                ? '这是一条多人一起听邀请（房间 ' + peek.roomId + '），进去以后能直接在房间聊天室里说话。'
+                : '这是一条双人一起听邀请（房间 ' + peek.roomId + '）；双人房没有房间聊天，说话会走网易云私信。')
+          })(),
           React.createElement('div', { className: 'row' },
             React.createElement('input', {
               type: 'text', value: say, placeholder: room.roomId ? '在房间里说一句' : '进房以后才能说话',
