@@ -1,22 +1,35 @@
 // dsh-listen-together —— DSH 设置里的「一起听」一栏（独立版，不依赖别的项目）。
 //
-// 这一层故意做得极薄：真正的逻辑都在 lib/host.mjs 里，按文件修改时间用带版本号的
-// 动态 import 重新加载。好处是改 lib/host.mjs 以后不用重开 DSH，刷一下页面就生效
-// （ESM 按 URL 缓存，所以必须带 ?v= 才能拿到新代码）。
+// 这一层故意做得极薄：真正的逻辑都在 lib/ 里，按这些文件的修改时间用带版本号的
+// 动态 import 重新加载。好处是改 lib 下任何文件以后不用重开 DSH，下一次请求或
+// 下一轮轮询就会用新代码（ESM 按 URL 缓存，所以必须带 ?v= 才能拿到新的）。
 import fs from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const name = 'dsh-listen-together';
 export const inject = ['webServer', 'agents'];
 
 const ROUTE = '/dsh-listen-together';
-const HOST_FILE = fileURLToPath(new URL('./lib/host.mjs', import.meta.url));
+const LIB_DIR = fileURLToPath(new URL('./lib/', import.meta.url));
+const VENDOR_FILE = fileURLToPath(new URL('./vendor/qrcode.mjs', import.meta.url));
 
+// 版本号 = lib 下所有 .mjs 加 vendor 的最大修改时间 + 总大小，任何一个文件变了就换版本。
 function stamp() {
+  let newest = 0;
+  let total = 0;
   try {
-    const stat = fs.statSync(HOST_FILE);
-    return `${Math.round(stat.mtimeMs)}-${stat.size}`;
+    for (const name of fs.readdirSync(LIB_DIR)) {
+      if (!name.endsWith('.mjs')) continue;
+      const stat = fs.statSync(path.join(LIB_DIR, name));
+      newest = Math.max(newest, stat.mtimeMs);
+      total += stat.size;
+    }
+    const vendor = fs.statSync(VENDOR_FILE);
+    newest = Math.max(newest, vendor.mtimeMs);
+    total += vendor.size;
   } catch { return 'missing'; }
+  return `${Math.round(newest)}-${total}`;
 }
 
 export function apply(ctx, config = {}) {
